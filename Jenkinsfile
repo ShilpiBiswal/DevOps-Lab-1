@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub-cred')  
-        DOCKER_IMAGE = "your-dockerhub-username/your-app"
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-cred')
+        DOCKER_IMAGE = "your-dockerhub-username/my-flask-app"
     }
 
     stages {
@@ -21,11 +21,13 @@ pipeline {
 
         stage('Test') {
             steps {
-                sh 'docker run --rm $DOCKER_IMAGE:$BUILD_NUMBER npm test || echo "No tests defined"'
+                sh 'docker run --rm -d -p 5000:5000 --name test_app $DOCKER_IMAGE:$BUILD_NUMBER & sleep 5'
+                sh 'curl -f http://localhost:5000 || (echo "Test failed!" && exit 1)'
+                sh 'docker stop test_app'
             }
         }
 
-        stage('Push to DockerHub') {
+        stage('Push') {
             steps {
                 withDockerRegistry([ credentialsId: 'dockerhub-cred', url: '' ]) {
                     sh 'docker push $DOCKER_IMAGE:$BUILD_NUMBER'
@@ -33,10 +35,11 @@ pipeline {
             }
         }
 
-        stage('Deploy (Optional)') {
+        stage('Deploy') {
             steps {
-                sh 'docker run -d -p 8081:80 $DOCKER_IMAGE:$BUILD_NUMBER'
+                sh 'docker run -d -p 8081:5000 $DOCKER_IMAGE:$BUILD_NUMBER'
             }
         }
     }
 }
+
