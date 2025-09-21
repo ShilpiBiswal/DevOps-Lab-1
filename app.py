@@ -15,5 +15,9 @@ def hello():
 def log_request():
     logger.info("Handling request...")
 
+@app.route("/hello")
+def hello():
+    return "Hello, world!"   # fixed typo
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
